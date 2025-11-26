@@ -227,6 +227,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .upload-label {
@@ -329,6 +331,8 @@ body {
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .description-label {
@@ -339,6 +343,7 @@ body {
 
 .description-input {
   width: 100%;
+  max-width: 100%;
   padding: 12px;
   border: 2px solid var(--pastel-blue-3);
   border-radius: 12px;
@@ -349,6 +354,7 @@ body {
   resize: vertical;
   transition: all 0.3s ease;
   box-sizing: border-box;
+  min-width: 0;
 }
 
 .description-input:focus {
