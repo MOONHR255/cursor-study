@@ -4,6 +4,7 @@ import './style.css'
 let questions = JSON.parse(localStorage.getItem('questions') || '[]')
 let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null')
 let filteredUserId = null // 필터링된 사용자 ID
+let filteredHashtag = null // 필터링된 해시태그
 
 // 앱 초기화
 function initApp() {
@@ -68,18 +69,52 @@ function renderApp() {
               <img id="preview-img" src="" alt="미리보기">
               <button id="remove-image" class="remove-btn">×</button>
             </div>
+            <div class="description-input-container">
+              <label for="question-description" class="description-label">질문 설명 (해시태그는 @태그명 형식으로 입력)</label>
+              <textarea 
+                id="question-description" 
+                class="description-input" 
+                placeholder="예: 이 문제는 @경우의수 @확률 문제입니다"
+                rows="3"
+              ></textarea>
+            </div>
             <button id="submit-question" class="submit-btn" disabled>질문 업로드</button>
           </div>
         </section>
         <section class="questions-section">
           <div class="questions-header">
-            <h2>${filteredUserId === currentUser.sub ? '내 질문' : '질문 목록'}</h2>
-            ${filteredUserId ? `
-              <div class="filter-info">
-                <span>${filteredUserId === currentUser.sub ? '내 질문만 보기' : getFilteredUserName() + '님의 질문만 보기'}</span>
-                <button id="clear-filter-btn" class="clear-filter-btn">전체 보기</button>
+            <h2>${filteredUserId === currentUser.sub ? '내 질문' : filteredHashtag ? `#${filteredHashtag} 질문` : '질문 목록'}</h2>
+            <div class="header-filters">
+              ${filteredUserId ? `
+                <div class="filter-info">
+                  <span>${filteredUserId === currentUser.sub ? '내 질문만 보기' : getFilteredUserName() + '님의 질문만 보기'}</span>
+                  <button id="clear-filter-btn" class="clear-filter-btn">전체 보기</button>
+                </div>
+              ` : ''}
+              ${filteredHashtag ? `
+                <div class="filter-info">
+                  <span>#${filteredHashtag} 태그만 보기</span>
+                  <button id="clear-hashtag-filter-btn" class="clear-filter-btn">전체 보기</button>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+          <div class="hashtag-search-section">
+            <div class="hashtag-search-container">
+              <input 
+                type="text" 
+                id="hashtag-search-input" 
+                class="hashtag-search-input" 
+                placeholder="해시태그 검색 (예: 경우의수)"
+              >
+              <button id="hashtag-search-btn" class="hashtag-search-btn">검색</button>
+            </div>
+            <div class="popular-hashtags">
+              <span class="hashtags-label">인기 해시태그:</span>
+              <div id="popular-hashtags-list" class="hashtags-list">
+                ${renderPopularHashtags()}
               </div>
-            ` : ''}
+            </div>
           </div>
           <div id="questions-list" class="questions-list">
             ${renderQuestions()}
@@ -153,6 +188,7 @@ function setupEventListeners() {
     } else {
       // 내 질문만 보기
       filteredUserId = currentUser.sub
+      filteredHashtag = null // 내 질문 필터 시 해시태그 필터 해제
     }
     renderApp()
   })
@@ -222,16 +258,88 @@ function setupEventListeners() {
   if (clearFilterBtn) {
     clearFilterBtn.addEventListener('click', () => {
       filteredUserId = null
+      filteredHashtag = null
       renderApp()
     })
   }
   
-  // 질문자 이름 클릭 이벤트 (이벤트 위임 사용)
+  // 해시태그 필터 초기화 버튼
+  const clearHashtagFilterBtn = document.getElementById('clear-hashtag-filter-btn')
+  if (clearHashtagFilterBtn) {
+    clearHashtagFilterBtn.addEventListener('click', () => {
+      filteredHashtag = null
+      renderApp()
+    })
+  }
+  
+  // 해시태그 검색
+  const hashtagSearchInput = document.getElementById('hashtag-search-input')
+  const hashtagSearchBtn = document.getElementById('hashtag-search-btn')
+  
+  if (hashtagSearchBtn) {
+    hashtagSearchBtn.addEventListener('click', () => {
+      const searchValue = hashtagSearchInput ? hashtagSearchInput.value.trim() : ''
+      if (searchValue) {
+        filteredHashtag = searchValue
+        filteredUserId = null // 해시태그 필터 시 사용자 필터 해제
+        renderApp()
+      }
+    })
+  }
+  
+  if (hashtagSearchInput) {
+    hashtagSearchInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const searchValue = hashtagSearchInput.value.trim()
+        if (searchValue) {
+          filteredHashtag = searchValue
+          filteredUserId = null
+          renderApp()
+        }
+      }
+    })
+  }
+  
+  // 인기 해시태그 클릭 이벤트 (이벤트 위임)
+  const popularHashtagsList = document.getElementById('popular-hashtags-list')
+  if (popularHashtagsList) {
+    popularHashtagsList.addEventListener('click', (e) => {
+      if (e.target.classList.contains('hashtag-tag') || e.target.classList.contains('hashtag-inline')) {
+        const hashtag = e.target.dataset.hashtag
+        if (hashtag) {
+          filteredHashtag = hashtag
+          filteredUserId = null
+          if (hashtagSearchInput) hashtagSearchInput.value = hashtag
+          renderApp()
+        }
+      }
+    })
+  }
+  
+  // 질문 카드의 해시태그 클릭 이벤트 (이벤트 위임)
   const questionsList = document.getElementById('questions-list')
   if (questionsList) {
     questionsList.addEventListener('click', (e) => {
-      if (e.target.classList.contains('question-user-name') || 
-          e.target.closest('.question-user-name')) {
+      if (e.target.classList.contains('hashtag-tag') || e.target.classList.contains('hashtag-inline')) {
+        const hashtag = e.target.dataset.hashtag
+        if (hashtag) {
+          filteredHashtag = hashtag
+          filteredUserId = null
+          if (hashtagSearchInput) hashtagSearchInput.value = hashtag
+          renderApp()
+        }
+      }
+    })
+  }
+  
+  // 질문자 이름 클릭 이벤트 (이벤트 위임 사용)
+  if (questionsList) {
+    questionsList.addEventListener('click', (e) => {
+      // 해시태그 클릭이 아닐 때만 사용자 이름 클릭 처리
+      if (!e.target.classList.contains('hashtag-tag') && 
+          !e.target.classList.contains('hashtag-inline') &&
+          (e.target.classList.contains('question-user-name') || 
+           e.target.closest('.question-user-name'))) {
         const userNameElement = e.target.classList.contains('question-user-name') 
           ? e.target 
           : e.target.closest('.question-user-name')
@@ -242,6 +350,7 @@ function setupEventListeners() {
           const question = questions.find(q => q.id === questionId)
           if (question) {
             filteredUserId = question.userId
+            filteredHashtag = null // 사용자 필터 시 해시태그 필터 해제
             renderApp()
           }
         }
@@ -253,11 +362,17 @@ function setupEventListeners() {
     if (selectedImage) {
       const reader = new FileReader()
       reader.onload = (e) => {
+        const descriptionInput = document.getElementById('question-description')
+        const description = descriptionInput ? descriptionInput.value.trim() : ''
+        const hashtags = extractHashtags(description)
+        
         const question = {
           id: Date.now().toString(),
           userId: currentUser.sub,
           userName: currentUser.name,
           image: e.target.result,
+          description: description,
+          hashtags: hashtags,
           timestamp: new Date().toISOString(),
           comments: []
         }
@@ -269,6 +384,7 @@ function setupEventListeners() {
         selectedImage = null
         imagePreview.style.display = 'none'
         imageInput.value = ''
+        if (descriptionInput) descriptionInput.value = ''
         submitBtn.disabled = true
         
         renderApp()
@@ -278,6 +394,16 @@ function setupEventListeners() {
   })
 }
 
+// 해시태그 추출 함수 (@로 시작하는 태그 추출)
+function extractHashtags(text) {
+  if (!text) return []
+  const hashtagRegex = /@(\w+)/g
+  const matches = text.match(hashtagRegex)
+  if (!matches) return []
+  // @ 제거하고 중복 제거
+  return [...new Set(matches.map(tag => tag.substring(1)))]
+}
+
 // 필터링된 사용자 이름 가져오기
 function getFilteredUserName() {
   if (!filteredUserId) return ''
@@ -285,12 +411,44 @@ function getFilteredUserName() {
   return question ? question.userName : ''
 }
 
+// 인기 해시태그 렌더링
+function renderPopularHashtags() {
+  // 모든 질문에서 해시태그 수집
+  const hashtagCount = {}
+  questions.forEach(question => {
+    if (question.hashtags && question.hashtags.length > 0) {
+      question.hashtags.forEach(tag => {
+        hashtagCount[tag] = (hashtagCount[tag] || 0) + 1
+      })
+    }
+  })
+  
+  // 빈도순으로 정렬 (최대 10개)
+  const popularTags = Object.entries(hashtagCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([tag]) => tag)
+  
+  if (popularTags.length === 0) {
+    return '<span class="no-hashtags">아직 해시태그가 없습니다.</span>'
+  }
+  
+  return popularTags.map(tag => `
+    <span class="hashtag-tag clickable" data-hashtag="${tag}">#${tag}</span>
+  `).join('')
+}
+
 // 질문 목록 렌더링
 function renderQuestions() {
   // 필터링 적용
   let filteredQuestions = questions
   if (filteredUserId) {
-    filteredQuestions = questions.filter(q => q.userId === filteredUserId)
+    filteredQuestions = filteredQuestions.filter(q => q.userId === filteredUserId)
+  }
+  if (filteredHashtag) {
+    filteredQuestions = filteredQuestions.filter(q => 
+      q.hashtags && q.hashtags.includes(filteredHashtag)
+    )
   }
   
   if (filteredQuestions.length === 0) {
@@ -312,6 +470,18 @@ function renderQuestions() {
           <div class="question-time">${formatTime(question.timestamp)}</div>
         </div>
       </div>
+      ${question.description ? `
+        <div class="question-description">
+          <p>${renderDescriptionWithHashtags(question.description, question.hashtags || [])}</p>
+        </div>
+      ` : ''}
+      ${question.hashtags && question.hashtags.length > 0 ? `
+        <div class="question-hashtags">
+          ${question.hashtags.map(tag => `
+            <span class="hashtag-tag clickable" data-hashtag="${tag}">#${tag}</span>
+          `).join('')}
+        </div>
+      ` : ''}
       <div class="question-image-container">
         <img src="${question.image}" alt="수학 질문" class="question-image">
       </div>
@@ -398,6 +568,18 @@ function formatTime(isoString) {
   if (days < 7) return `${days}일 전`
   
   return date.toLocaleDateString('ko-KR')
+}
+
+// 설명에 해시태그 링크 렌더링
+function renderDescriptionWithHashtags(description, hashtags) {
+  if (!description) return ''
+  let html = escapeHtml(description)
+  // @태그를 클릭 가능한 링크로 변환
+  hashtags.forEach(tag => {
+    const regex = new RegExp(`@${tag}`, 'g')
+    html = html.replace(regex, `<span class="hashtag-inline clickable" data-hashtag="${tag}">@${tag}</span>`)
+  })
+  return html
 }
 
 // HTML 이스케이프
