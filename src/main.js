@@ -404,14 +404,19 @@ function setupEventListeners() {
   })
 }
 
-// 해시태그 추출 함수 (@로 시작하는 태그 추출)
+// 해시태그 추출 함수 (@로 시작하는 태그 추출, 한글 포함)
 function extractHashtags(text) {
   if (!text) return []
-  const hashtagRegex = /@(\w+)/g
+  // 한글, 영문, 숫자, 언더스코어를 포함한 정규식
+  const hashtagRegex = /@([가-힣a-zA-Z0-9_]+)/g
   const matches = text.match(hashtagRegex)
   if (!matches) return []
-  // @ 제거하고 중복 제거, 소문자로 통일
-  return [...new Set(matches.map(tag => tag.substring(1).toLowerCase()))]
+  // @ 제거하고 중복 제거, 영문자는 소문자로 통일 (한글은 그대로)
+  return [...new Set(matches.map(tag => {
+    const tagWithoutAt = tag.substring(1)
+    // 영문자가 포함된 경우에만 소문자 변환, 한글은 그대로 유지
+    return tagWithoutAt.replace(/[a-zA-Z]/g, (char) => char.toLowerCase())
+  }))]
 }
 
 // 필터링된 사용자 이름 가져오기

@@ -324,6 +324,39 @@ body {
   opacity: 0.6;
 }
 
+.description-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.description-label {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+.description-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--pastel-blue-3);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text-dark);
+  background: var(--white);
+  resize: vertical;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.description-input:focus {
+  outline: none;
+  border-color: var(--pastel-blue-5);
+  box-shadow: 0 0 0 3px var(--pastel-blue-1);
+}
+
 /* 질문 섹션 */
 .questions-header {
   display: flex;
