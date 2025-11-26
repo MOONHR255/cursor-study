@@ -492,6 +492,94 @@ body {
   margin-bottom: 16px;
 }
 
+.question-header-content {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.question-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-question-btn,
+.delete-question-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-question-btn {
+  background: var(--pastel-blue-4);
+  color: var(--white);
+}
+
+.edit-question-btn:hover {
+  background: var(--pastel-blue-5);
+  transform: translateY(-1px);
+}
+
+.delete-question-btn {
+  background: #ff9a9a;
+  color: var(--white);
+}
+
+.delete-question-btn:hover {
+  background: #ff7a7a;
+  transform: translateY(-1px);
+}
+
+.edit-question-form {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: var(--pastel-blue-1);
+  border-radius: 12px;
+}
+
+.edit-form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.save-edit-btn,
+.cancel-edit-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.save-edit-btn {
+  background: var(--pastel-blue-5);
+  color: var(--white);
+}
+
+.save-edit-btn:hover {
+  background: var(--pastel-blue-6);
+  transform: translateY(-1px);
+}
+
+.cancel-edit-btn {
+  background: var(--pastel-blue-3);
+  color: var(--text-dark);
+}
+
+.cancel-edit-btn:hover {
+  background: var(--pastel-blue-4);
+  transform: translateY(-1px);
+}
+
 .question-user-img {
   width: 48px;
   height: 48px;
@@ -727,6 +815,56 @@ body {
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.comment-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.edit-comment-btn,
+.delete-comment-btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-comment-btn {
+  background: var(--pastel-blue-4);
+  color: var(--white);
+}
+
+.edit-comment-btn:hover {
+  background: var(--pastel-blue-5);
+}
+
+.delete-comment-btn {
+  background: #ff9a9a;
+  color: var(--white);
+}
+
+.delete-comment-btn:hover {
+  background: #ff7a7a;
+}
+
+.edit-comment-form {
+  margin-top: 8px;
+}
+
+.edit-comment-form .edit-form-actions {
+  margin-top: 8px;
+}
+
+.edit-comment-form .save-edit-btn,
+.edit-comment-form .cancel-edit-btn {
+  padding: 6px 12px;
+  font-size: 0.85rem;
 }
 
 .comment-user-name {

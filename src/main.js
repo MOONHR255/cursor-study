@@ -280,8 +280,8 @@ function setupEventListeners() {
     hashtagSearchBtn.addEventListener('click', () => {
       const searchValue = hashtagSearchInput ? hashtagSearchInput.value.trim() : ''
       if (searchValue) {
-        // @ 제거하고 검색
-        const hashtag = searchValue.replace(/^@/, '').trim()
+        // @ 제거하고 검색, 소문자로 변환
+        const hashtag = searchValue.replace(/^@/, '').trim().toLowerCase()
         if (hashtag) {
           filteredHashtag = hashtag
           filteredUserId = null // 해시태그 필터 시 사용자 필터 해제
@@ -296,8 +296,8 @@ function setupEventListeners() {
       if (e.key === 'Enter') {
         const searchValue = hashtagSearchInput.value.trim()
         if (searchValue) {
-          // @ 제거하고 검색
-          const hashtag = searchValue.replace(/^@/, '').trim()
+          // @ 제거하고 검색, 소문자로 변환
+          const hashtag = searchValue.replace(/^@/, '').trim().toLowerCase()
           if (hashtag) {
             filteredHashtag = hashtag
             filteredUserId = null
@@ -312,10 +312,12 @@ function setupEventListeners() {
   const popularHashtagsList = document.getElementById('popular-hashtags-list')
   if (popularHashtagsList) {
     popularHashtagsList.addEventListener('click', (e) => {
-      if (e.target.classList.contains('hashtag-tag') || e.target.classList.contains('hashtag-inline')) {
-        const hashtag = e.target.dataset.hashtag
+      const hashtagElement = e.target.closest('.hashtag-tag')
+      if (hashtagElement) {
+        const hashtag = hashtagElement.dataset.hashtag
         if (hashtag) {
-          filteredHashtag = hashtag
+          e.stopPropagation()
+          filteredHashtag = hashtag.toLowerCase()
           filteredUserId = null
           if (hashtagSearchInput) hashtagSearchInput.value = hashtag
           renderApp()
@@ -328,13 +330,19 @@ function setupEventListeners() {
   const questionsList = document.getElementById('questions-list')
   if (questionsList) {
     questionsList.addEventListener('click', (e) => {
+      // 버튼 클릭은 무시 (수정/삭제 버튼 등)
+      if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+        return
+      }
+      
       // 해시태그 클릭 처리
       const hashtagElement = e.target.closest('.hashtag-tag, .hashtag-inline')
       if (hashtagElement) {
         const hashtag = hashtagElement.dataset.hashtag
         if (hashtag) {
-          e.stopPropagation() // 이벤트 전파 방지
-          filteredHashtag = hashtag
+          e.preventDefault()
+          e.stopPropagation()
+          filteredHashtag = hashtag.toLowerCase()
           filteredUserId = null
           if (hashtagSearchInput) hashtagSearchInput.value = hashtag
           renderApp()
@@ -343,11 +351,8 @@ function setupEventListeners() {
       }
       
       // 사용자 이름 클릭 처리 (해시태그가 아닐 때만)
-      if (e.target.classList.contains('question-user-name') || 
-          e.target.closest('.question-user-name')) {
-        const userNameElement = e.target.classList.contains('question-user-name') 
-          ? e.target 
-          : e.target.closest('.question-user-name')
+      const userNameElement = e.target.closest('.question-user-name')
+      if (userNameElement && !hashtagElement) {
         const questionCard = userNameElement.closest('.question-card')
         const questionId = questionCard ? questionCard.dataset.questionId : null
         
@@ -405,8 +410,8 @@ function extractHashtags(text) {
   const hashtagRegex = /@(\w+)/g
   const matches = text.match(hashtagRegex)
   if (!matches) return []
-  // @ 제거하고 중복 제거
-  return [...new Set(matches.map(tag => tag.substring(1)))]
+  // @ 제거하고 중복 제거, 소문자로 통일
+  return [...new Set(matches.map(tag => tag.substring(1).toLowerCase()))]
 }
 
 // 필터링된 사용자 이름 가져오기
@@ -451,8 +456,9 @@ function renderQuestions() {
     filteredQuestions = filteredQuestions.filter(q => q.userId === filteredUserId)
   }
   if (filteredHashtag) {
+    const searchHashtag = filteredHashtag.toLowerCase().trim()
     filteredQuestions = filteredQuestions.filter(q => 
-      q.hashtags && q.hashtags.includes(filteredHashtag)
+      q.hashtags && q.hashtags.some(tag => tag.toLowerCase() === searchHashtag)
     )
   }
   
@@ -466,34 +472,58 @@ function renderQuestions() {
     return '<p class="empty-message">아직 질문이 없습니다. 첫 번째 질문을 업로드해보세요!</p>'
   }
   
-  return filteredQuestions.map(question => `
+  return filteredQuestions.map(question => {
+    const isMyQuestion = currentUser && question.userId === currentUser.sub
+    return `
     <div class="question-card" data-question-id="${question.id}">
       <div class="question-header">
         <div class="question-user-img">${getInitials(question.userName)}</div>
-        <div>
-          <div class="question-user-name clickable">${question.userName}</div>
-          <div class="question-time">${formatTime(question.timestamp)}</div>
+        <div class="question-header-content">
+          <div>
+            <div class="question-user-name clickable">${question.userName}</div>
+            <div class="question-time">${formatTime(question.timestamp)}</div>
+          </div>
+          ${isMyQuestion ? `
+            <div class="question-actions">
+              <button class="edit-question-btn" onclick="startEditQuestion('${question.id}')">수정</button>
+              <button class="delete-question-btn" onclick="deleteQuestion('${question.id}')">삭제</button>
+            </div>
+          ` : ''}
         </div>
       </div>
-      ${question.description ? `
-        <div class="question-description">
-          <p>${renderDescriptionWithHashtags(question.description, question.hashtags || [])}</p>
+      ${question.editing ? `
+        <div class="edit-question-form">
+          <textarea 
+            id="edit-description-${question.id}" 
+            class="description-input" 
+            rows="3"
+          >${escapeHtml(question.description || '')}</textarea>
+          <div class="edit-form-actions">
+            <button class="save-edit-btn" onclick="saveQuestionEdit('${question.id}')">저장</button>
+            <button class="cancel-edit-btn" onclick="cancelQuestionEdit('${question.id}')">취소</button>
+          </div>
         </div>
-      ` : ''}
-      ${question.hashtags && question.hashtags.length > 0 ? `
-        <div class="question-hashtags">
-          ${question.hashtags.map(tag => `
-            <span class="hashtag-tag clickable" data-hashtag="${tag}">#${tag}</span>
-          `).join('')}
-        </div>
-      ` : ''}
+      ` : `
+        ${question.description ? `
+          <div class="question-description">
+            <p>${renderDescriptionWithHashtags(question.description, question.hashtags || [])}</p>
+          </div>
+        ` : ''}
+        ${question.hashtags && question.hashtags.length > 0 ? `
+          <div class="question-hashtags">
+            ${question.hashtags.map(tag => `
+              <span class="hashtag-tag clickable" data-hashtag="${tag}">#${tag}</span>
+            `).join('')}
+          </div>
+        ` : ''}
+      `}
       <div class="question-image-container">
         <img src="${question.image}" alt="수학 질문" class="question-image">
       </div>
       <div class="comments-section">
         <h3>설명</h3>
         <div class="comments-list" id="comments-${question.id}">
-          ${renderComments(question.comments)}
+          ${renderComments(question.comments, question.id)}
         </div>
         <div class="comment-form">
           <textarea 
@@ -509,27 +539,51 @@ function renderQuestions() {
         </div>
       </div>
     </div>
-  `).join('')
+    `
+  }).join('')
 }
 
 // 댓글 렌더링
-function renderComments(comments) {
-  if (comments.length === 0) {
+function renderComments(comments, questionId) {
+  if (!comments || comments.length === 0) {
     return '<p class="no-comments">아직 설명이 없습니다.</p>'
   }
   
-  return comments.map(comment => `
-    <div class="comment-item">
+  return comments.map(comment => {
+    const isMyComment = currentUser && comment.userId === currentUser.sub
+    return `
+    <div class="comment-item" data-comment-id="${comment.id}">
       <div class="comment-user-img">${getInitials(comment.userName)}</div>
       <div class="comment-content">
         <div class="comment-header">
           <span class="comment-user-name">${comment.userName}</span>
           <span class="comment-time">${formatTime(comment.timestamp)}</span>
+          ${isMyComment ? `
+            <div class="comment-actions">
+              <button class="edit-comment-btn" onclick="startEditComment('${questionId}', '${comment.id}')">수정</button>
+              <button class="delete-comment-btn" onclick="deleteComment('${questionId}', '${comment.id}')">삭제</button>
+            </div>
+          ` : ''}
         </div>
-        <p class="comment-text">${escapeHtml(comment.text)}</p>
+        ${comment.editing ? `
+          <div class="edit-comment-form">
+            <textarea 
+              id="edit-comment-${comment.id}" 
+              class="comment-input" 
+              rows="2"
+            >${escapeHtml(comment.text)}</textarea>
+            <div class="edit-form-actions">
+              <button class="save-edit-btn" onclick="saveCommentEdit('${questionId}', '${comment.id}')">저장</button>
+              <button class="cancel-edit-btn" onclick="cancelCommentEdit('${questionId}', '${comment.id}')">취소</button>
+            </div>
+          </div>
+        ` : `
+          <p class="comment-text">${escapeHtml(comment.text)}</p>
+        `}
       </div>
     </div>
-  `).join('')
+    `
+  }).join('')
 }
 
 // 댓글 추가 (전역 함수로 등록)
@@ -592,6 +646,127 @@ function escapeHtml(text) {
   const div = document.createElement('div')
   div.textContent = text
   return div.innerHTML
+}
+
+// 질문 수정 시작
+window.startEditQuestion = function(questionId) {
+  const question = questions.find(q => q.id === questionId)
+  if (!question || !currentUser || question.userId !== currentUser.sub) return
+  
+  question.editing = true
+  localStorage.setItem('questions', JSON.stringify(questions))
+  renderApp()
+}
+
+// 질문 수정 저장
+window.saveQuestionEdit = function(questionId) {
+  const question = questions.find(q => q.id === questionId)
+  if (!question || !currentUser || question.userId !== currentUser.sub) return
+  
+  const descriptionInput = document.getElementById(`edit-description-${questionId}`)
+  if (!descriptionInput) return
+  
+  const description = descriptionInput.value.trim()
+  const hashtags = extractHashtags(description)
+  
+  question.description = description
+  question.hashtags = hashtags
+  question.editing = false
+  question.timestamp = new Date().toISOString() // 수정 시간 업데이트
+  
+  localStorage.setItem('questions', JSON.stringify(questions))
+  renderApp()
+}
+
+// 질문 수정 취소
+window.cancelQuestionEdit = function(questionId) {
+  const question = questions.find(q => q.id === questionId)
+  if (!question || !currentUser || question.userId !== currentUser.sub) return
+  
+  question.editing = false
+  localStorage.setItem('questions', JSON.stringify(questions))
+  renderApp()
+}
+
+// 질문 삭제
+window.deleteQuestion = function(questionId) {
+  const question = questions.find(q => q.id === questionId)
+  if (!question || !currentUser || question.userId !== currentUser.sub) return
+  
+  if (confirm('정말 이 질문을 삭제하시겠습니까?')) {
+    const index = questions.findIndex(q => q.id === questionId)
+    if (index !== -1) {
+      questions.splice(index, 1)
+      localStorage.setItem('questions', JSON.stringify(questions))
+      renderApp()
+    }
+  }
+}
+
+// 댓글 수정 시작
+window.startEditComment = function(questionId, commentId) {
+  const question = questions.find(q => q.id === questionId)
+  if (!question || !currentUser) return
+  
+  const comment = question.comments.find(c => c.id === commentId)
+  if (!comment || comment.userId !== currentUser.sub) return
+  
+  comment.editing = true
+  localStorage.setItem('questions', JSON.stringify(questions))
+  renderApp()
+}
+
+// 댓글 수정 저장
+window.saveCommentEdit = function(questionId, commentId) {
+  const question = questions.find(q => q.id === questionId)
+  if (!question || !currentUser) return
+  
+  const comment = question.comments.find(c => c.id === commentId)
+  if (!comment || comment.userId !== currentUser.sub) return
+  
+  const commentInput = document.getElementById(`edit-comment-${commentId}`)
+  if (!commentInput) return
+  
+  const text = commentInput.value.trim()
+  if (!text) return
+  
+  comment.text = text
+  comment.editing = false
+  comment.timestamp = new Date().toISOString() // 수정 시간 업데이트
+  
+  localStorage.setItem('questions', JSON.stringify(questions))
+  renderApp()
+}
+
+// 댓글 수정 취소
+window.cancelCommentEdit = function(questionId, commentId) {
+  const question = questions.find(q => q.id === questionId)
+  if (!question || !currentUser) return
+  
+  const comment = question.comments.find(c => c.id === commentId)
+  if (!comment || comment.userId !== currentUser.sub) return
+  
+  comment.editing = false
+  localStorage.setItem('questions', JSON.stringify(questions))
+  renderApp()
+}
+
+// 댓글 삭제
+window.deleteComment = function(questionId, commentId) {
+  const question = questions.find(q => q.id === questionId)
+  if (!question || !currentUser) return
+  
+  const comment = question.comments.find(c => c.id === commentId)
+  if (!comment || comment.userId !== currentUser.sub) return
+  
+  if (confirm('정말 이 댓글을 삭제하시겠습니까?')) {
+    const index = question.comments.findIndex(c => c.id === commentId)
+    if (index !== -1) {
+      question.comments.splice(index, 1)
+      localStorage.setItem('questions', JSON.stringify(questions))
+      renderApp()
+    }
+  }
 }
 
 // 앱 시작
