@@ -280,9 +280,13 @@ function setupEventListeners() {
     hashtagSearchBtn.addEventListener('click', () => {
       const searchValue = hashtagSearchInput ? hashtagSearchInput.value.trim() : ''
       if (searchValue) {
-        filteredHashtag = searchValue
-        filteredUserId = null // 해시태그 필터 시 사용자 필터 해제
-        renderApp()
+        // @ 제거하고 검색
+        const hashtag = searchValue.replace(/^@/, '').trim()
+        if (hashtag) {
+          filteredHashtag = hashtag
+          filteredUserId = null // 해시태그 필터 시 사용자 필터 해제
+          renderApp()
+        }
       }
     })
   }
@@ -292,9 +296,13 @@ function setupEventListeners() {
       if (e.key === 'Enter') {
         const searchValue = hashtagSearchInput.value.trim()
         if (searchValue) {
-          filteredHashtag = searchValue
-          filteredUserId = null
-          renderApp()
+          // @ 제거하고 검색
+          const hashtag = searchValue.replace(/^@/, '').trim()
+          if (hashtag) {
+            filteredHashtag = hashtag
+            filteredUserId = null
+            renderApp()
+          }
         }
       }
     })
@@ -316,30 +324,27 @@ function setupEventListeners() {
     })
   }
   
-  // 질문 카드의 해시태그 클릭 이벤트 (이벤트 위임)
+  // 질문 카드의 해시태그 및 사용자 이름 클릭 이벤트 (이벤트 위임)
   const questionsList = document.getElementById('questions-list')
   if (questionsList) {
     questionsList.addEventListener('click', (e) => {
-      if (e.target.classList.contains('hashtag-tag') || e.target.classList.contains('hashtag-inline')) {
-        const hashtag = e.target.dataset.hashtag
+      // 해시태그 클릭 처리
+      const hashtagElement = e.target.closest('.hashtag-tag, .hashtag-inline')
+      if (hashtagElement) {
+        const hashtag = hashtagElement.dataset.hashtag
         if (hashtag) {
+          e.stopPropagation() // 이벤트 전파 방지
           filteredHashtag = hashtag
           filteredUserId = null
           if (hashtagSearchInput) hashtagSearchInput.value = hashtag
           renderApp()
+          return
         }
       }
-    })
-  }
-  
-  // 질문자 이름 클릭 이벤트 (이벤트 위임 사용)
-  if (questionsList) {
-    questionsList.addEventListener('click', (e) => {
-      // 해시태그 클릭이 아닐 때만 사용자 이름 클릭 처리
-      if (!e.target.classList.contains('hashtag-tag') && 
-          !e.target.classList.contains('hashtag-inline') &&
-          (e.target.classList.contains('question-user-name') || 
-           e.target.closest('.question-user-name'))) {
+      
+      // 사용자 이름 클릭 처리 (해시태그가 아닐 때만)
+      if (e.target.classList.contains('question-user-name') || 
+          e.target.closest('.question-user-name')) {
         const userNameElement = e.target.classList.contains('question-user-name') 
           ? e.target 
           : e.target.closest('.question-user-name')
