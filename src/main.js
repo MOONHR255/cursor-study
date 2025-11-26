@@ -12,6 +12,9 @@ function initApp() {
 
 // 앱 렌더링
 function renderApp() {
+  // 로컬 스토리지에서 최신 데이터 다시 로드
+  questions = JSON.parse(localStorage.getItem('questions') || '[]')
+  
   const app = document.querySelector('#app')
   
   if (!currentUser) {
@@ -39,10 +42,13 @@ function renderApp() {
     app.innerHTML = `
       <header class="header">
         <h1>수학 질문 플랫폼</h1>
-        <div class="user-info">
-          <div class="profile-avatar">${getInitials(currentUser.name)}</div>
-          <span>${currentUser.name}</span>
-          <button id="logout-btn" class="logout-btn">로그아웃</button>
+        <div class="header-actions">
+          <button id="my-questions-btn" class="my-questions-btn ${filteredUserId === currentUser.sub ? 'active' : ''}">내 질문</button>
+          <div class="user-info">
+            <div class="profile-avatar">${getInitials(currentUser.name)}</div>
+            <span>${currentUser.name}</span>
+            <button id="logout-btn" class="logout-btn">로그아웃</button>
+          </div>
         </div>
       </header>
       <main class="main-content">
@@ -67,10 +73,10 @@ function renderApp() {
         </section>
         <section class="questions-section">
           <div class="questions-header">
-            <h2>질문 목록</h2>
+            <h2>${filteredUserId === currentUser.sub ? '내 질문' : '질문 목록'}</h2>
             ${filteredUserId ? `
               <div class="filter-info">
-                <span>${getFilteredUserName()}님의 질문만 보기</span>
+                <span>${filteredUserId === currentUser.sub ? '내 질문만 보기' : getFilteredUserName() + '님의 질문만 보기'}</span>
                 <button id="clear-filter-btn" class="clear-filter-btn">전체 보기</button>
               </div>
             ` : ''}
@@ -123,9 +129,22 @@ function getInitials(name) {
 
 // 이벤트 리스너 설정
 function setupEventListeners() {
+  // 내 질문 보기 버튼
+  document.getElementById('my-questions-btn').addEventListener('click', () => {
+    if (filteredUserId === currentUser.sub) {
+      // 이미 내 질문을 보고 있으면 필터 해제
+      filteredUserId = null
+    } else {
+      // 내 질문만 보기
+      filteredUserId = currentUser.sub
+    }
+    renderApp()
+  })
+  
   // 로그아웃
   document.getElementById('logout-btn').addEventListener('click', () => {
     currentUser = null
+    filteredUserId = null
     localStorage.removeItem('currentUser')
     renderApp()
   })
@@ -260,6 +279,9 @@ function renderQuestions() {
   
   if (filteredQuestions.length === 0) {
     if (filteredUserId) {
+      if (filteredUserId === currentUser.sub) {
+        return '<p class="empty-message">아직 올린 질문이 없습니다. 첫 번째 질문을 업로드해보세요!</p>'
+      }
       return '<p class="empty-message">이 사용자의 질문이 없습니다.</p>'
     }
     return '<p class="empty-message">아직 질문이 없습니다. 첫 번째 질문을 업로드해보세요!</p>'
