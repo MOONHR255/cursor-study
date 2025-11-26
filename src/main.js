@@ -92,6 +92,19 @@ function renderApp() {
   }
 }
 
+// 이름 기반으로 일관된 사용자 ID 생성
+function generateUserId(name) {
+  // 이름을 기반으로 일관된 ID 생성 (간단한 해시)
+  let hash = 0
+  const nameLower = name.toLowerCase().trim()
+  for (let i = 0; i < nameLower.length; i++) {
+    const char = nameLower.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // 32비트 정수로 변환
+  }
+  return 'user_' + Math.abs(hash).toString()
+}
+
 // 로그인 폼 설정
 function setupLoginForm() {
   const form = document.getElementById('login-form')
@@ -102,9 +115,12 @@ function setupLoginForm() {
     const name = nameInput.value.trim()
     
     if (name) {
+      // 같은 이름이면 같은 ID를 사용
+      const userId = generateUserId(name)
+      
       currentUser = {
         name: name,
-        sub: 'user_' + Date.now().toString(),
+        sub: userId,
         picture: null
       }
       
